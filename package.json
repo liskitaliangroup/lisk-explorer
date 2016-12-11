@@ -10,7 +10,7 @@
     "repository": {
         "type": "git",
         "url": "git://github.com/andreafspeziale/lisk-explorer.git"
-    }
+    },
     "keywords": [
         "lisk"
     ],
