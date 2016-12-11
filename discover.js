@@ -31,11 +31,29 @@ var loadNodesReport = function () {
 };
 
 var nodesReport = loadNodesReport();
-
-nodeToVisit.push(startingNode);
-nodesReport.start = new Date(Date.now()).toString();
 console.log(new Date(Date.now()).toString() + ' | Crawl started\n');
-crawl();
+
+var isStartingWithOpenApiNode = function() {
+    return new Promise(function (resolve, reject) {
+        request.get('http://' + startingNode + '/api/peers?state=2&orderBy=version:desc',{timeout: 3500}, function(error, response, body) {
+            if(!error && response.statusCode == 200) {
+                resolve(true);
+            } else {
+                reject(false);
+            }
+        })
+    })
+}
+
+isStartingWithOpenApiNode().then(function(res) {
+    nodeToVisit.push(startingNode);
+    nodesReport.start = new Date(Date.now()).toString();
+    crawl();
+}, function (err) {
+    console.log(new Date(Date.now()).toString() + ' | Please start the explorer with an open API Lisk node');
+});
+
+
 
 function crawl() {
     var nextNode = nodeToVisit.pop();
