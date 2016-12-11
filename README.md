@@ -1,5 +1,5 @@
 #Lisk-explorer
-This script aim to discover a big part of the Lisk network.
+This script aims to explorer a big part of the Lisk network.
 
 ##Prereq
 
