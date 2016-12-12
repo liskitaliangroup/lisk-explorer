@@ -5,5 +5,7 @@
     "totalClosedNodes": 0,
     "total": 0,
     "openNodes": [],
-    "closedNodes": []
+    "closedNodes": [],
+    "totalRegisteredDelegates": 0,
+    "delegatesPublicKey":[]
 }
