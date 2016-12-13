@@ -8,5 +8,6 @@
     "insecureForgingNodes": [],
     "openNodes": [],
     "closedNodes": [],
-    "delegatesPublicKey":[]
+    "forgingDelegatesPublicKey":[],
+    "notForgingDelegatesPublicKey":[]
 }

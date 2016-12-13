@@ -163,10 +163,17 @@ function collectDelegatesPublicKey() {
                        for (var i = 0; i < delegates.delegates.length; i++) {
                            //console.log(delegates.delegates[i].username)
                            this.resolveCounter++;
-                           nodesReport.delegatesPublicKey.push({
-                               "publicKey":delegates.delegates[i].publicKey,
-                               "username":delegates.delegates[i].username
-                           });
+                           if(delegates.delegates[i].rate <= 101){
+                               nodesReport.forgingDelegatesPublicKey.push({
+                                   "publicKey":delegates.delegates[i].publicKey,
+                                   "username":delegates.delegates[i].username,
+                               });
+                           } else {
+                               nodesReport.notForgingDelegatesPublicKey.push({
+                                   "publicKey":delegates.delegates[i].publicKey,
+                                   "username":delegates.delegates[i].username
+                               });
+                           }
                        }
                        if(this.resolveCounter == nodesReport.totalRegisteredDelegates)
                             resolve('Public keys collected: ' + this.resolveCounter);
@@ -221,19 +228,34 @@ function collectInsecureNodeAndDelegates() {
 
         this.counter = 0;
         this.nodeLimit = nodesReport.openNodes.length;
-        this.publicKeyLimit = nodesReport.delegatesPublicKey.length;
+        if(config.force)
+            this.publicKeyLimit = (nodesReport.forgingDelegatesPublicKey.concat(nodesReport.notForgingDelegatesPublicKey)).length;
+        else
+            this.publicKeyLimit = nodesReport.forgingDelegatesPublicKey.length;
+        this.fails = [];
 
-        for(var i = 0; i < this.nodeLimit; i++) {
+        // devo creare un array di coda
 
-            for(var j = 0; j < this.publicKeyLimit; j++) {
+        for(var i = 0; i < this.publicKeyLimit;  i++) {
 
-                checkIfForgingIsEnabledByDelegate(nodesReport.openNodes[i], nodesReport.delegatesPublicKey[j].publicKey, nodesReport.delegatesPublicKey[j].username).then( (res) => {
+            for(var j = 0; j < this.nodeLimit; j++) {
+
+                // controllo se c'è o meno in pending l'ip del turno corrente
+                // se non c'è lo inserisco altrimenti no
+                // ma se c'è non devo rifare la chiamata e creo la coda con ip e chiave
+                if(this.fails.indexOf(nodesReport.openNodes[j]) == -1)
+                    this.fails.push(nodesReport.openNodes[j]);
+
+                checkIfForgingIsEnabledByDelegate(nodesReport.openNodes[j], nodesReport.forgingDelegatesPublicKey[i].publicKey, nodesReport.forgingDelegatesPublicKey[i].username).then( (res) => {
+
+                    // quando sono qui guardo se in quella lista c'è l'ip se c'è lo rimuovo
+                    if(this.fails.indexOf(res.node) != -1)
+                        this.fails.push(res.node);
 
                     //console.log('success ',this.counter);
 
                     this.counter = this.counter + 1;
                     if (res.found) {
-                        console.log('FOUND');
                         nodesReport.insecureForgingNodes.push({
                             "node": res.node,
                             "publicKey": res.publicKey,
@@ -242,16 +264,19 @@ function collectInsecureNodeAndDelegates() {
                     }
 
                     if(this.counter == (this.nodeLimit * this.publicKeyLimit)-1){
-                        resolve('Insecure delegate crawled. API call performed: ' + counter);
+                        resolve('Insecure delegate crawled. API call performed: ' + this.counter + 'buffer ' + this.buffer.length );
                     }
 
                 }, (err) => {
 
-                    console.log(err.message,err.node, err.publicKey);
+                    //console.log(err.message, err.node, err.publicKey);
+
                     this.counter = this.counter + 1;
+
                     if(this.counter == (this.nodeLimit * this.publicKeyLimit)-1)
-                        resolve('Insecure delegate crawled. API call performed: ' + counter);
+                        resolve('Insecure delegate crawled. API call performed: ' + this.counter + '\nCall failed  ' + this.buffer.length);
                 });
+
             }
         }
     });
