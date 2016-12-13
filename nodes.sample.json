@@ -4,8 +4,9 @@
     "totalOpenNodes": 0,
     "totalClosedNodes": 0,
     "total": 0,
+    "totalRegisteredDelegates": 0,
+    "insecureForgingNodes": [],
     "openNodes": [],
     "closedNodes": [],
-    "totalRegisteredDelegates": 0,
     "delegatesPublicKey":[]
 }

@@ -16,7 +16,7 @@ var saveNodesReport = function () {
             if(!err)
                 resolve(colors.magenta(new Date(Date.now()).toString()) + ' | ' +colors.green('Data saved'));
             else
-                reject(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Something wrong saving the delegate data'));
+                reject('Something wrong saving the delegate data');
         });
     })
 };
@@ -71,24 +71,35 @@ function crawl() {
             visitNode(nextNode, crawl);
     } else {
         /*
-         * Crawling finished start collecting publicKeys
-        */
-        nodesReport.finish = new Date(Date.now()).toString();
+        * Crawling finished
+        * */
         nodesReport.totalOpenNodes = totalOpenNodes;
         nodesReport.totalClosedNodes = totalClosedNodes;
         nodesReport.total = totalOpenNodes + totalClosedNodes;
+        /*
+        * Collecting publicKeys
+        * */
         collectDelegatesPublicKey().then(function (res) {
+            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
             /*
-             * publicKeys collected
-            */
-            console.log('\n'+colors.magenta(new Date(Date.now()).toString()) + ' | ' +colors.green(res));
-            saveNodesReport().then(function (res) {
-                console.log('\n' + res);
+            * Searching and collecting for delegates using insecure nodes
+            * */
+            collectInsecureNodeAndDelegates().then(function (res){
+                console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
+                /*
+                * Saving the data
+                * */
+                nodesReport.finish = new Date(Date.now()).toString();
+                saveNodesReport().then(function (res) {
+                    console.log('\n' + res);
+                }, function (err) {
+                    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+                })
             }, function (err) {
-                console.log(err);
-            })
+                console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+            });
         }, function (err) {
-            reject(err);
+            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
         })
     }
 }
@@ -126,7 +137,7 @@ var browseDelegate = function (pageCounter) {
                 if(res.delegates.length)
                    resolve(res);
             } else {
-                reject(error);
+                reject('Error in /api/delegates/');
             }
         })
     });
@@ -148,17 +159,81 @@ function collectDelegatesPublicKey() {
                                "publicKey":delegates.delegates[i].publicKey,
                                "username":delegates.delegates[i].username
                            });
-                           resolve('Delegates crawled');
                        }
+                       resolve('Delegates crawled');
                    }, function (err) {
-                       console.log(err);
-                       reject(false);
+                       reject(err);
                    });
                }
            }, function (err) {
-               console.log(err);
-               reject(false);
+               reject(err);
            });
        }
    );
 }
+
+/*
+ * Check if an open node is forging and connect it to the delegate who enabled it
+ */
+var checkIfForgingIsEnabledByDelegate = function (node, publicKey) {
+    //console.log(node,publicKey);
+    return new Promise(function (resolve, reject) {
+        request('http://' + node + '/api/delegates/forging/status?publicKey=' + publicKey, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                var res = JSON.parse(body);
+                if(res.success && res.enabled) {
+                    resolve({
+                        found: true,
+                        node: node,
+                        publicKey: publicKey
+                    });
+                } else {
+                    resolve({
+                        found: false,
+                        node: node,
+                        publicKey: publicKey
+                    });
+                }
+            } else {
+                reject("Error in /api/delegates/forging/status?publicKey call");
+            }
+        })
+    });
+};
+
+function collectInsecureNodeAndDelegates() {
+    return new Promise( (resolve, reject) => {
+
+        console.log('nodes ' + nodesReport.openNodes.length + ' pkey ' + nodesReport.delegatesPublicKey);
+
+        this.counter = 0;
+
+        for(var i = 0; i < 100; i++) {
+
+            for(var j = 0; j < 100; j++) {
+
+                checkIfForgingIsEnabledByDelegate(nodesReport.openNodes[i], nodesReport.delegatesPublicKey[j].publicKey).then( (res) => {
+
+                    //console.log('success ',this.counter);
+
+                    this.counter = this.counter + 1;
+                    if (res.found) {
+                        nodesReport.insecureForgingNodes.push({
+                            "node": res.node,
+                            "publicKey": res.publicKey
+                        })
+                    }
+
+                    if(this.counter == 10000)
+                        resolve(this.counter);
+
+                }, (err) => {
+                    //console.log('error ',this.counter);
+                    this.counter = this.counter + 1;
+                    if(this.counter == 10000)
+                        resolve(this.counter);
+                });
+            }
+        }
+    });
+};
