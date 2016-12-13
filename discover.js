@@ -22,7 +22,7 @@ var saveNodesReport = function () {
 };
 var loadNodesReport = function () {
     try {
-        return JSON.parse (fs.readFileSync('nodes.json', 'utf8'));
+        return JSON.parse (fs.readFileSync('nodes.sample.json', 'utf8'));
     } catch (e) {
         console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Something wrong loading the nodes.json'));
         return {
@@ -53,7 +53,12 @@ var isStartingWithOpenApiNode = function() {
 isStartingWithOpenApiNode().then(function(res) {
     nodeToVisit.push(startingNode);
     nodesReport.start = new Date(Date.now()).toString();
-    crawl();
+    collectDelegatesPublicKey().then(function (res) {
+        console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
+        crawl();
+    }, function (err) {
+        console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+    })
 }, function (err) {
     console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Please start the explorer with an open API Lisk node'));
 });
@@ -76,11 +81,12 @@ function crawl() {
         nodesReport.totalOpenNodes = totalOpenNodes;
         nodesReport.totalClosedNodes = totalClosedNodes;
         nodesReport.total = totalOpenNodes + totalClosedNodes;
+        console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Nodes crawled'));
         /*
         * Collecting publicKeys
         * */
-        collectDelegatesPublicKey().then(function (res) {
-            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
+        //collectDelegatesPublicKey().then(function (res) {
+            //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
             /*
             * Searching and collecting for delegates using insecure nodes
             * */
@@ -98,9 +104,9 @@ function crawl() {
             }, function (err) {
                 console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
             });
-        }, function (err) {
-            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-        })
+        //}, function (err) {
+            //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+        //})
     }
 }
 
@@ -131,7 +137,7 @@ function visitNode(node, callback) {
 
 var browseDelegate = function (pageCounter) {
     return new Promise(function (resolve, reject) {
-        request('http://' + startingNode + '/api/delegates/?limit=101&offset=' + pageCounter + '&orderBy=rate:asc', function (error, response, body) {
+        request.get('http://' + startingNode + '/api/delegates/?limit=101&offset=' + pageCounter + '&orderBy=rate:asc', function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 var res = JSON.parse(body)
                 if(res.delegates.length)
@@ -144,23 +150,26 @@ var browseDelegate = function (pageCounter) {
 };
 
 function collectDelegatesPublicKey() {
-    return new Promise(function (resolve, reject) {
+    return new Promise( (resolve, reject) => {
         var pageCounter = 0;
         var numberOfDelegates = 0;
-        browseDelegate(pageCounter).then(function(res) {
+        this.resolveCounter = 0;
+        browseDelegate(pageCounter).then((res) => {
                numberOfDelegates = res.totalCount;
                nodesReport.totalRegisteredDelegates = numberOfDelegates;
                for(pageCounter; pageCounter < numberOfDelegates; pageCounter += 101) {
-                   browseDelegate(pageCounter).then(function(res) {
+                   browseDelegate(pageCounter).then((res) => {
                        var delegates = res;
                        for (var i = 0; i < delegates.delegates.length; i++) {
                            //console.log(delegates.delegates[i].username)
+                           this.resolveCounter++;
                            nodesReport.delegatesPublicKey.push({
                                "publicKey":delegates.delegates[i].publicKey,
                                "username":delegates.delegates[i].username
                            });
                        }
-                       resolve('Delegates crawled');
+                       if(this.resolveCounter == nodesReport.totalRegisteredDelegates)
+                            resolve('Public keys collected: ' + this.resolveCounter);
                    }, function (err) {
                        reject(err);
                    });
@@ -175,17 +184,18 @@ function collectDelegatesPublicKey() {
 /*
  * Check if an open node is forging and connect it to the delegate who enabled it
  */
-var checkIfForgingIsEnabledByDelegate = function (node, publicKey) {
+var checkIfForgingIsEnabledByDelegate = function (node, publicKey, username) {
     //console.log(node,publicKey);
     return new Promise(function (resolve, reject) {
-        request('http://' + node + '/api/delegates/forging/status?publicKey=' + publicKey, function (error, response, body) {
+        request.get('http://' + node + '/api/delegates/forging/status?publicKey=' + publicKey,{timeout: 5500}, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 var res = JSON.parse(body);
                 if(res.success && res.enabled) {
                     resolve({
                         found: true,
                         node: node,
-                        publicKey: publicKey
+                        publicKey: publicKey,
+                        username: username
                     });
                 } else {
                     resolve({
@@ -195,7 +205,12 @@ var checkIfForgingIsEnabledByDelegate = function (node, publicKey) {
                     });
                 }
             } else {
-                reject("Error in /api/delegates/forging/status?publicKey call");
+                reject({
+                        found: false,
+                        node: node,
+                        publicKey: publicKey,
+                        message: "Error in /api/delegates/forging/status?publicKey call"
+                });
             }
         })
     });
@@ -204,34 +219,38 @@ var checkIfForgingIsEnabledByDelegate = function (node, publicKey) {
 function collectInsecureNodeAndDelegates() {
     return new Promise( (resolve, reject) => {
 
-        console.log('nodes ' + nodesReport.openNodes.length + ' pkey ' + nodesReport.delegatesPublicKey);
-
         this.counter = 0;
+        this.nodeLimit = nodesReport.openNodes.length;
+        this.publicKeyLimit = nodesReport.delegatesPublicKey.length;
 
-        for(var i = 0; i < 100; i++) {
+        for(var i = 0; i < this.nodeLimit; i++) {
 
-            for(var j = 0; j < 100; j++) {
+            for(var j = 0; j < this.publicKeyLimit; j++) {
 
-                checkIfForgingIsEnabledByDelegate(nodesReport.openNodes[i], nodesReport.delegatesPublicKey[j].publicKey).then( (res) => {
+                checkIfForgingIsEnabledByDelegate(nodesReport.openNodes[i], nodesReport.delegatesPublicKey[j].publicKey, nodesReport.delegatesPublicKey[j].username).then( (res) => {
 
                     //console.log('success ',this.counter);
 
                     this.counter = this.counter + 1;
                     if (res.found) {
+                        console.log('FOUND');
                         nodesReport.insecureForgingNodes.push({
                             "node": res.node,
-                            "publicKey": res.publicKey
+                            "publicKey": res.publicKey,
+                            "username": res.username
                         })
                     }
 
-                    if(this.counter == 10000)
-                        resolve(this.counter);
+                    if(this.counter == (this.nodeLimit * this.publicKeyLimit)-1){
+                        resolve('Insecure delegate crawled. API call performed: ' + counter);
+                    }
 
                 }, (err) => {
-                    //console.log('error ',this.counter);
+
+                    console.log(err.message,err.node, err.publicKey);
                     this.counter = this.counter + 1;
-                    if(this.counter == 10000)
-                        resolve(this.counter);
+                    if(this.counter == (this.nodeLimit * this.publicKeyLimit)-1)
+                        resolve('Insecure delegate crawled. API call performed: ' + counter);
                 });
             }
         }

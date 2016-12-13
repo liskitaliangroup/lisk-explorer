@@ -1,24 +1,25 @@
 {
-    "name": "lisk-discover",
-    "version": "1.0.0",
-    "description": "collector of lisk node with open API",
-    "main": "discover.js",
-    "scripts": {
-        "start": "node discover.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/andreafspeziale/lisk-explorer.git"
-    },
-    "keywords": [
-        "lisk"
-    ],
-    "author": "andreafspeziale",
-    "license": "ISC",
-    "dependencies": {
-        "colors": "^1.1.2",
-        "lodash": "^4.17.2",
-        "request": "^2.79.0"
-    }
+  "name": "lisk-discover",
+  "version": "1.0.0",
+  "description": "collector of lisk node with open API",
+  "main": "discover.js",
+  "scripts": {
+    "start": "node discover.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/andreafspeziale/lisk-explorer.git"
+  },
+  "keywords": [
+    "lisk"
+  ],
+  "author": "andreafspeziale",
+  "license": "ISC",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "console-progress": "^0.1.2",
+    "lodash": "^4.17.2",
+    "request": "^2.79.0"
+  }
 }
