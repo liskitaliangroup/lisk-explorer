@@ -24,7 +24,7 @@ var loadNodesReport = function () {
     try {
         return JSON.parse (fs.readFileSync('nodes.sample.json', 'utf8'));
     } catch (e) {
-        console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Something wrong loading the nodes.json'));
+        console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Something wrong loading the nodes.sample.json'));
         return {
         };
     }
@@ -90,8 +90,8 @@ function crawl() {
             /*
             * Searching and collecting for delegates using insecure nodes
             * */
-            collectInsecureNodeAndDelegates().then(function (res){
-                console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
+            //collectInsecureNodeAndDelegates().then(function (res){
+                //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
                 /*
                 * Saving the data
                 * */
@@ -101,9 +101,9 @@ function crawl() {
                 }, function (err) {
                     console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
                 })
-            }, function (err) {
-                console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-            });
+            //}, function (err) {
+                //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+            //});
         //}, function (err) {
             //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
         //})
@@ -187,97 +187,3 @@ function collectDelegatesPublicKey() {
        }
    );
 }
-
-/*
- * Check if an open node is forging and connect it to the delegate who enabled it
- */
-var checkIfForgingIsEnabledByDelegate = function (node, publicKey, username) {
-    //console.log(node,publicKey);
-    return new Promise(function (resolve, reject) {
-        request.get('http://' + node + '/api/delegates/forging/status?publicKey=' + publicKey,{timeout: 5500}, function (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                var res = JSON.parse(body);
-                if(res.success && res.enabled) {
-                    resolve({
-                        found: true,
-                        node: node,
-                        publicKey: publicKey,
-                        username: username
-                    });
-                } else {
-                    resolve({
-                        found: false,
-                        node: node,
-                        publicKey: publicKey
-                    });
-                }
-            } else {
-                reject({
-                        found: false,
-                        node: node,
-                        publicKey: publicKey,
-                        message: "Error in /api/delegates/forging/status?publicKey call"
-                });
-            }
-        })
-    });
-};
-
-function collectInsecureNodeAndDelegates() {
-    return new Promise( (resolve, reject) => {
-
-        this.counter = 0;
-        this.nodeLimit = nodesReport.openNodes.length;
-        if(config.force)
-            this.publicKeyLimit = (nodesReport.forgingDelegatesPublicKey.concat(nodesReport.notForgingDelegatesPublicKey)).length;
-        else
-            this.publicKeyLimit = nodesReport.forgingDelegatesPublicKey.length;
-        this.fails = [];
-
-        // devo creare un array di coda
-
-        for(var i = 0; i < this.publicKeyLimit;  i++) {
-
-            for(var j = 0; j < this.nodeLimit; j++) {
-
-                // controllo se c'è o meno in pending l'ip del turno corrente
-                // se non c'è lo inserisco altrimenti no
-                // ma se c'è non devo rifare la chiamata e creo la coda con ip e chiave
-                if(this.fails.indexOf(nodesReport.openNodes[j]) == -1)
-                    this.fails.push(nodesReport.openNodes[j]);
-
-                checkIfForgingIsEnabledByDelegate(nodesReport.openNodes[j], nodesReport.forgingDelegatesPublicKey[i].publicKey, nodesReport.forgingDelegatesPublicKey[i].username).then( (res) => {
-
-                    // quando sono qui guardo se in quella lista c'è l'ip se c'è lo rimuovo
-                    if(this.fails.indexOf(res.node) != -1)
-                        this.fails.push(res.node);
-
-                    //console.log('success ',this.counter);
-
-                    this.counter = this.counter + 1;
-                    if (res.found) {
-                        nodesReport.insecureForgingNodes.push({
-                            "node": res.node,
-                            "publicKey": res.publicKey,
-                            "username": res.username
-                        })
-                    }
-
-                    if(this.counter == (this.nodeLimit * this.publicKeyLimit)-1){
-                        resolve('Insecure delegate crawled. API call performed: ' + this.counter + 'buffer ' + this.buffer.length );
-                    }
-
-                }, (err) => {
-
-                    //console.log(err.message, err.node, err.publicKey);
-
-                    this.counter = this.counter + 1;
-
-                    if(this.counter == (this.nodeLimit * this.publicKeyLimit)-1)
-                        resolve('Insecure delegate crawled. API call performed: ' + this.counter + '\nCall failed  ' + this.buffer.length);
-                });
-
-            }
-        }
-    });
-};
