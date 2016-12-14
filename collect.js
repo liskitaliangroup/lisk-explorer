@@ -30,31 +30,42 @@ var loadNodesReport = function () {
 
 var nodesReport = loadNodesReport();
 
+nodesReport.startCollect = new Date(Date.now()).toString();
+
 /**
- * Collecting
+ * Ensuring to empty collection and re-collecting
  */
-collectInsecureNodeAndDelegates().then(function (res){
-    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
-    /*
-     * Saving the data
-     * */
-    nodesReport.finish = new Date(Date.now()).toString();
-    saveNodesReport().then(function (res) {
-        console.log('\n' + res);
+
+nodesReport.insecureForgingNodes = [];
+
+saveNodesReport().then(function (res) {
+    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | '+ colors.green('insecureForgingNodes reinitialized'));
+    collectInsecureNodeAndDelegates().then(function (res){
+        nodesReport.totalForgingDelegatesWithOpenAPI = nodesReport.insecureForgingNodes.length;
+        console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
+        /*
+         * Saving the data
+         * */
+        nodesReport.finishCollect = new Date(Date.now()).toString();
+        saveNodesReport().then(function (res) {
+            console.log('\n' + res);
+        }, function (err) {
+            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+        })
     }, function (err) {
         console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-    })
+    });
 }, function (err) {
     console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-});
+})
 
 /*
  * Check if an open node is forging and connect it to the delegate who enabled it
  */
-var checkIfForgingIsEnabledByDelegate = function (node, publicKey, username) {
+function checkIfForgingIsEnabledByDelegate(node, publicKey, username) {
     //console.log(node,publicKey);
-    return new Promise(function (resolve, reject) {
-        request.get('http://' + node + '/api/delegates/forging/status?publicKey=' + publicKey,{timeout: 5500}, function (error, response, body) {
+    return new Promise( (resolve, reject) => {
+        request.get('http://' + node + '/api/delegates/forging/status?publicKey=' + publicKey,{timeout: 5500}, (error, response, body) => {
             if (!error && response.statusCode == 200) {
                 var res = JSON.parse(body);
                 if(res.success && res.enabled) {
@@ -109,7 +120,7 @@ function collectInsecureNodeAndDelegates() {
                     /*if(this.fails.indexOf(res.node) != -1)
                         this.fails.push(res.node);*/
 
-                    console.log('success ',this.counter);
+                    //console.log('success ',this.counter);
 
                     this.counter = this.counter + 1;
                     if (res.found) {
@@ -126,7 +137,7 @@ function collectInsecureNodeAndDelegates() {
 
                 }, (err) => {
 
-                    console.log(err.message);
+                    //console.log(err.message);
 
                     this.counter = this.counter + 1;
 

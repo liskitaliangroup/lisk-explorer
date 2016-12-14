@@ -34,4 +34,4 @@ If you run into some javascript memory error launch the script manually like thi
 
     - node --max_old_space_size=6144 discover.js
     
-Of course you need a machine with such memory available. 
+Of course you need a machine with such memory available.

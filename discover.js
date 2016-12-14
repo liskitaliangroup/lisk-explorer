@@ -52,7 +52,7 @@ var isStartingWithOpenApiNode = function() {
 
 isStartingWithOpenApiNode().then(function(res) {
     nodeToVisit.push(startingNode);
-    nodesReport.start = new Date(Date.now()).toString();
+    nodesReport.startDiscover = new Date(Date.now()).toString();
     collectDelegatesPublicKey().then(function (res) {
         console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
         crawl();
@@ -95,7 +95,7 @@ function crawl() {
                 /*
                 * Saving the data
                 * */
-                nodesReport.finish = new Date(Date.now()).toString();
+                nodesReport.finishDiscover = new Date(Date.now()).toString();
                 saveNodesReport().then(function (res) {
                     console.log('\n' + res);
                 }, function (err) {
