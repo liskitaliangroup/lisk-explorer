@@ -5,12 +5,14 @@
     "finishCollect":"",
     "totalOpenNodes": 0,
     "totalClosedNodes": 0,
+    "totalProbFakeNodes":0,
     "total": 0,
     "totalRegisteredDelegates": 0,
     "totalForgingDelegatesWithOpenAPI": 0,
     "insecureForgingNodes": [],
     "openNodes": [],
     "closedNodes": [],
+    "probFakeNodes": [],
     "forgingDelegatesPublicKey":[],
     "notForgingDelegatesPublicKey":[]
 }
