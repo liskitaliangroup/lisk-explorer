@@ -135,7 +135,7 @@ function checkIfNodeIsForging (node) {
                 }
 
                 // resolving the promise if I finish the iterations
-                if(counter == (publicKeys.length)) {
+                if(counter == (publicKeys.length)-1) {
 
                     console.log('ITERATION FINISHED IN SUCCESS');
 
@@ -151,7 +151,7 @@ function checkIfNodeIsForging (node) {
                 fails.push(err);
 
                 // if any error occur no block the iteration and resolve when finish
-                if(counter == (publicKeys.length)) {
+                if(counter == (publicKeys.length)-1) {
 
                     console.log('ITERATION FINISHED IN ERROR');
 
@@ -182,13 +182,13 @@ function collect () {
         checkIfNodeIsForging(nextNode).then((res) => {
 
             // printing response
-            console.log('Collect success');
+            // console.log('Collect success');
 
             // if correlation found push the object into the collector
-            /*if(res.found) {
+            if(res.found) {
                 nodesReport.insecureForgingNodes.push(res);
                 collect();
-            }*/
+            }
 
             collect();
 
