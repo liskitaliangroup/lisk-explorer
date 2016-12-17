@@ -9,6 +9,7 @@ var nodesVisited = {};
 var nodeToVisit = [];
 var totalOpenNodes = 0;
 var totalClosedNodes = 0;
+var totalProbFakeNodes = 0;
 
 var saveNodesReport = function () {
     return new Promise(function (resolve, reject) {
@@ -81,6 +82,7 @@ function crawl() {
         nodesReport.totalOpenNodes = totalOpenNodes;
         nodesReport.totalClosedNodes = totalClosedNodes;
         nodesReport.total = totalOpenNodes + totalClosedNodes;
+        nodesReport.totalProbFakeNodes = totalProbFakeNodes;
         console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Nodes crawled'));
         /*
         * Collecting publicKeys
@@ -112,23 +114,31 @@ function crawl() {
 
 function visitNode(node, callback) {
     nodesVisited[node] = true;
-    console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' +colors.green('Node: ') + node);
-    request.get('http://' + node + '/api/peers?state=2&orderBy=version:desc',{timeout: 3500}, function(error, response, body) {
-        if(!error && response.statusCode == 200) {
-            var res = JSON.parse(body);
-            nodesReport.openNodes.push(node);
-            totalOpenNodes++;
-            for(var i = 0; i < res.peers.length; i++)
-                nodeToVisit.push(res.peers[i].ip + ':' + res.peers[i].port);
-            callback();
-        } else {
-            console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' +colors.red('Node dropped: ') + node);
-            nodesReport.closedNodes.push(node);
-            totalClosedNodes++
-            callback();
-            return;
-        }
-    })
+    if(node.indexOf('8000')!== -1) {
+        console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Node: ') + node);
+        request.get('http://' + node + '/api/peers?state=2&orderBy=version:desc', {timeout: 3500}, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                var res = JSON.parse(body);
+                nodesReport.openNodes.push(node);
+                totalOpenNodes++;
+                for (var i = 0; i < res.peers.length; i++)
+                    nodeToVisit.push(res.peers[i].ip + ':' + res.peers[i].port);
+                callback();
+            } else {
+                console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Node dropped: ') + node);
+                nodesReport.closedNodes.push(node);
+                totalClosedNodes++
+                callback();
+                return;
+            }
+        })
+    } else {
+        console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Node dropped: ') + node);
+        nodesReport.probFakeNodes.push(node);
+        totalProbFakeNodes++
+        callback();
+        return;
+    }
 };
 
 /*
