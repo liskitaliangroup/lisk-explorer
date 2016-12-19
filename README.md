@@ -28,10 +28,3 @@ Run the script in 2 step
 
     - npm run-script discover (for collecting the nodes)
     - npm run-script collect (for collecting all the forging delegates using an open API node)
-    
-##Trouble
-If you run into some javascript memory error launch the script manually like this:
-
-    - node --max_old_space_size=6144 discover.js
-    
-Of course you need a machine with such memory available.

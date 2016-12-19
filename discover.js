@@ -102,7 +102,7 @@ function crawl() {
                     console.log('\n' + res);
                 }, function (err) {
                     console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-                })
+                });
             //}, function (err) {
                 //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
             //});

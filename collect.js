@@ -52,10 +52,6 @@ nodes = nodes.concat(nodesReport.openNodes);
 // ensuring to empty the insecureForgingNodes collection and re-generate it with the next launch
 nodesReport.insecureForgingNodes = [];
 
-// success and fails collector
-var success = [];
-var fails = [];
-
 //insecureForgingNodes reinitializing
 saveNodesReport().then(function (res) {
     console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | '+ colors.green('insecureForgingNodes reinitialized'));
@@ -68,6 +64,7 @@ saveNodesReport().then(function (res) {
  * Check if an open node is forging and return the response
  */
 function checkIfForgingIsEnabledByDelegate(node, publicKey, username) {
+
     //console.log('API CALL ', node, publicKey, username);
 
     return new Promise( (resolve, reject) => {
@@ -104,102 +101,65 @@ function checkIfForgingIsEnabledByDelegate(node, publicKey, username) {
 
 function checkIfNodeIsForging (node) {
     return new Promise( (resolve, reject) => {
-        // cycle counter
-        var counter = 0;
-
         // loading forging delegates public keys
         var publicKeys = nodesReport.forgingDelegatesPublicKey;
 
         // for each publickey check if it is forging on the given node
-        for(var i = 0; i < publicKeys.length; i++) {
+        var promises = [];
+        publicKeys.forEach (function (publicKey) {
+            promises.push (checkIfForgingIsEnabledByDelegate(node, publicKey.publicKey, publicKey.username));
+        });
 
-            checkIfForgingIsEnabledByDelegate(node, publicKeys[i].publicKey, publicKeys[i].username).then((res) => {
-
-                // iteration counter
-                counter++;
-
-                // collecting response
-                success.push(res);
-
-                // resolving the promise if I found a correlation
-                if(res.found) {
-
-                    console.log('CORRELATION FOUND');
-
-                    resolve({
-                        found:true,
-                        node:res.node,
-                        publicKye: res.publicKey,
-                        username: res.username
-                    });
-                }
-
-                // resolving the promise if I finish the iterations
-                if(counter == (publicKeys.length)-1) {
-
-                    console.log('ITERATION FINISHED IN SUCCESS');
-
-                    resolve({
-                        found:false,
-                    });
-                }
-
-            }, (err) => {
-
-                this.counter = this.counter + 1;
-
-                fails.push(err);
-
-                // if any error occur no block the iteration and resolve when finish
-                if(counter == (publicKeys.length)-1) {
-
-                    console.log('ITERATION FINISHED IN ERROR');
-
-                    resolve({
-                        found:false
-                    });
-
-                }
+        Promise.all (promises).then ((r) => {
+            r.forEach (function (rr) {
+                if (rr.found == true)
+                    resolve (rr);
             });
-        }
-    })
+            resolve ({found: false})
+        }).catch ((e) => {
+            resolve ({found: false})
+        });
+    });
 }
 
 
 
 function collect () {
-
     // loading next node
     var nextNode = nodes.pop();
+
+    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Asking to: ' + nextNode));
+    console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Nodes remaining: ' + nodes.length));
 
     // if next node is still defined
     if(nextNode != undefined) {
 
-        //console.log('nodes: ' + nodes);
-        console.log('nodes len: ' + nodes.length);
-
         // ask to that node to check if one of the 101 delegates public key is used for forging
         checkIfNodeIsForging(nextNode).then((res) => {
-
-            // printing response
-            // console.log('Collect success');
-
             // if correlation found push the object into the collector
             if(res.found) {
+                console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Correlation found: ' + res.username + ' ----> ' + res.node));
                 nodesReport.insecureForgingNodes.push(res);
+                collect();
+            } else {
+                console.log(colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.yellow('No correlation found'));
                 collect();
             }
 
-            collect();
-
-        }, (err) => {
+        }).catch ((err) => {
 
             // should not be trigger
-            console.log('Collect error' + err);
+            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red('Error caught'));
         })
 
     } else {
-        //finish
-        console.log('I am in the else probably finished');
+        // saving data into json file
+        console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Collect finished'));
+        nodesReport.finishCollect = new Date(Date.now()).toString();
+        saveNodesReport().then(function (res) {
+            console.log('\n' + res);
+        }, function (err) {
+            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+        });
     }
 }
