@@ -81,6 +81,7 @@ function crawl() {
         * */
         nodesReport.totalOpenNodes = totalOpenNodes;
         nodesReport.totalClosedNodes = totalClosedNodes;
+        nodesReport.totalProbFakeNodes = totalProbFakeNodes;
         nodesReport.total = totalOpenNodes + totalClosedNodes;
         nodesReport.totalProbFakeNodes = totalProbFakeNodes;
         console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Nodes crawled'));
@@ -102,7 +103,7 @@ function crawl() {
                     console.log('\n' + res);
                 }, function (err) {
                     console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-                })
+                });
             //}, function (err) {
                 //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
             //});
