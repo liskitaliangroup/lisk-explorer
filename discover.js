@@ -85,31 +85,12 @@ function crawl() {
         nodesReport.total = totalOpenNodes + totalClosedNodes;
         nodesReport.totalProbFakeNodes = totalProbFakeNodes;
         console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Nodes crawled'));
-        /*
-        * Collecting publicKeys
-        * */
-        //collectDelegatesPublicKey().then(function (res) {
-            //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
-            /*
-            * Searching and collecting for delegates using insecure nodes
-            * */
-            //collectInsecureNodeAndDelegates().then(function (res){
-                //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green(res));
-                /*
-                * Saving the data
-                * */
-                nodesReport.finishDiscover = new Date(Date.now()).toString();
-                saveNodesReport().then(function (res) {
-                    console.log('\n' + res);
-                }, function (err) {
-                    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-                });
-            //}, function (err) {
-                //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-            //});
-        //}, function (err) {
-            //console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
-        //})
+        nodesReport.finishDiscover = new Date(Date.now()).toString();
+        saveNodesReport().then(function (res) {
+            console.log('\n' + res);
+        }, function (err) {
+            console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.red(err));
+        });
     }
 }
 

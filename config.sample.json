@@ -1,3 +1,4 @@
 {
-    "node":"login.lisk.io"
+    "node":"liskworld.info:8000",
+    "force":false
 }

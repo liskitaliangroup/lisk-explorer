@@ -99,10 +99,22 @@ function checkIfForgingIsEnabledByDelegate(node, publicKey, username) {
     });
 };
 
+if(config.force) {
+    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.yellow('Using all delegates public keys? ' + config.force));
+} else {
+    console.log('\n' + colors.magenta(new Date(Date.now()).toString()) + ' | ' + colors.green('Using all delegates public keys? ' + config.force));
+
+}
+
 function checkIfNodeIsForging (node) {
     return new Promise( (resolve, reject) => {
         // loading forging delegates public keys
-        var publicKeys = nodesReport.forgingDelegatesPublicKey;
+
+        if(config.force) {
+            var publicKeys = nodesReport.forgingDelegatesPublicKey.concat(nodesReport.notForgingDelegatesPublicKey);
+        } else {
+            var publicKeys = nodesReport.forgingDelegatesPublicKey;
+        }
 
         // for each publickey check if it is forging on the given node
         var promises = [];
