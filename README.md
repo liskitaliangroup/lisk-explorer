@@ -1,12 +1,8 @@
-#Lisk-explorer
+#Lisk Explorer
 > With love by liskit delegate, for donation 10310263204519541551L
 
-This 2 script aims to 
-
-    - explorer a big part of the Lisk network saving all the IP with open API
-    - check if some delegate is forging on a open API node
+The script aims to explore the Lisk network saving all the open API nodes and checking for delegates forging on one of these nodes.
     
-
 ##Prereq
 
     - nodeJS
@@ -30,3 +26,6 @@ Run the script in 2 step
 
     - npm run-script discover (for collecting the nodes)
     - npm run-script collect (for collecting all the forging delegates using an open API node)
+    
+##Results
+The script results are stored in json files.
